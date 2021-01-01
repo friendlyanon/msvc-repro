@@ -1,0 +1,44 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - master
+
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  repro:
+    strategy:
+      fail-fast: false
+
+      matrix:
+        config:
+          - { os: ubuntu, name: GCC }
+          - { os: macos, name: Clang }
+          - { os: windows, name: MSVC }
+
+    runs-on: ${{ matrix.config.os }}-latest
+
+    name: ${{ matrix.config.name }}
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Set GCC version on Ubuntu
+        if: matrix.config.os == 'ubuntu'
+        run: |
+          echo "CC=gcc-9" >> $GITHUB_ENV
+          echo "CXX=g++-9" >> $GITHUB_ENV
+
+      - name: Configure
+        run: cmake -S . -B build -D CMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Run
+        working-directory: build
+        run: ctest
